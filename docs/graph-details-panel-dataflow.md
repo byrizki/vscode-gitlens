@@ -241,7 +241,8 @@ follows the active tab to name the file being read, and steps from the file a co
 so several open diffs each step from their own. Its `onReviewReading` event carries the active file
 and an append-only list of editor-made viewed marks; `review.applyReadingState` folds the marks past
 `entry.reading.marksApplied` into the session and keeps the active file on the entry for the panel's
-strip. There is no cursor: the panel's own buttons pass the active file explicitly.
+strip and for the checklist, which selects and scrolls to its row (`gl-file-tree-pane.revealPath` →
+`gl-tree-view.focusedPath`, opening collapsed folders above it). There is no cursor: the panel's own buttons pass the active file explicitly.
 
 The **orient** depth (`graphInspect.orientChanges`, the `review-orient` template over the same file
 manifest the two-pass overview reads) lands on the entry as `entry.orient`, tracked while running by

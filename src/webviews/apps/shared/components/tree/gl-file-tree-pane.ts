@@ -185,6 +185,12 @@ export class GlFileTreePane extends LitElement {
 	@property({ type: Boolean, attribute: 'multi-selectable' })
 	multiSelectable = false;
 
+	/** The file row to focus, select and scroll into view — applied whenever it changes or the model
+	 *  is rebuilt, opening collapsed folders above it. For consumers that follow something outside the
+	 *  pane, like the review following the active diff editor. */
+	@property({ attribute: 'reveal-path' })
+	revealPath?: string;
+
 	/** Opt-in: makes file rows draggable (native drag carrying the file `path`). Off by default;
 	 *  set by consumers that support dropping files elsewhere (e.g. compose file→commit move). */
 	@property({ type: Boolean, attribute: 'draggable-files' })
@@ -1062,6 +1068,7 @@ export class GlFileTreePane extends LitElement {
 		const dimUnmatched = this.searchContext != null && this._contextMatchVisibility === 'mixed';
 		return html`<gl-tree-view
 			.model=${treeModel}
+			.focusedPath=${this.revealPath}
 			.guides=${this.indentGuides}
 			.filtered=${this.searchContext != null && this._contextMatchVisibility !== 'off'}
 			.searchBoxFilter=${this.effectiveSearchBoxFilter}

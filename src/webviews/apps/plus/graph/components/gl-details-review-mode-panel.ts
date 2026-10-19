@@ -1129,6 +1129,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 					?multi-selectable=${true}
 					?show-file-icons=${true}
 					.collapsable=${false}
+					.revealPath=${this.reading?.active}
 					@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) => this.onTreeOrderChanged('tree', e)}
 					.filesLayout=${this.paneFilesLayout}
 					.checkableStates=${checkableStates}
@@ -1237,6 +1238,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 					pane => html`<gl-file-tree-pane
 						header=${pane.label}
 						.files=${pane.files}
+						.revealPath=${this.reading?.active}
 						@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) =>
 							this.onTreeOrderChanged(pane.label, e)}
 						?checkable=${true}
