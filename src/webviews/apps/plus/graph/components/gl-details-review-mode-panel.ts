@@ -863,9 +863,56 @@ export class GlDetailsReviewModePanel extends LitElement {
 
 	private onTreeOrderChanged(key: string, e: CustomEvent<{ paths: string[] }>): void {
 		e.stopPropagation();
+		const paths = e.detail.paths;
+		const known = this._treeOrders.get(key);
+		if (known != null && known.length === paths.length && known.every((p, i) => p === paths[i])) return;
+
 		const next = new Map(this._treeOrders);
-		next.set(key, e.detail.paths);
+		next.set(key, paths);
 		this._treeOrders = next;
+	}
+
+	/** The plan's panes, kept across renders while the plan and the files are the same objects — a fresh
+	 *  `files` array per render would make every pane rebuild its model on every render. */
+	private _orientPanes?: {
+		orient: AIReviewOrientResult;
+		files: readonly ScopeFile[];
+		panes: { label: string; files: ScopeFile[] }[];
+	};
+
+	private getOrientPanes(orient: AIReviewOrientResult, renderFiles: readonly ScopeFile[]) {
+		const cached = this._orientPanes;
+		if (cached?.orient === orient && cached.files === renderFiles) return cached.panes;
+
+		const byPath = new Map(renderFiles.map(f => [f.path, f]));
+		const placed = new Set<string>();
+		const panes: { label: string; files: ScopeFile[] }[] = [];
+		for (const group of orient.groups) {
+			const files: ScopeFile[] = [];
+			for (const { path } of group.files) {
+				const file = byPath.get(path);
+				if (file == null || placed.has(path)) continue;
+
+				placed.add(path);
+				files.push(file);
+			}
+			if (files.length === 0) continue;
+
+			const kind =
+				group.kind === 'core'
+					? l10n.t('read first')
+					: group.kind === 'mechanical'
+						? l10n.t('skim')
+						: l10n.t('supporting');
+			panes.push({ label: `${getReviewFocusAreaLabel(group)} · ${kind}`, files: files });
+		}
+		const rest = renderFiles.filter(f => !placed.has(f.path));
+		if (rest.length > 0) {
+			panes.push({ label: l10n.t('Not in the plan'), files: rest });
+		}
+
+		this._orientPanes = { orient: orient, files: renderFiles, panes: panes };
+		return panes;
 	}
 
 	/** The checklist's files top to bottom: the plan's panes in turn, or the one tree. */
@@ -1188,33 +1235,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 		checkableStates: Map<string, { state?: 'checked'; disabled?: boolean; disabledReason?: string }>,
 	) {
 		const orient = this.orient!;
-		const byPath = new Map(renderFiles.map(f => [f.path, f]));
-		const placed = new Set<string>();
-		const panes: { label: string; files: ScopeFile[] }[] = [];
-		for (const group of orient.groups) {
-			const files: ScopeFile[] = [];
-			for (const { path } of group.files) {
-				const file = byPath.get(path);
-				if (file == null || placed.has(path)) continue;
-
-				placed.add(path);
-				files.push(file);
-			}
-			if (files.length === 0) continue;
-
-			const kind =
-				group.kind === 'core'
-					? l10n.t('read first')
-					: group.kind === 'mechanical'
-						? l10n.t('skim')
-						: l10n.t('supporting');
-			panes.push({ label: `${getReviewFocusAreaLabel(group)} · ${kind}`, files: files });
-		}
-		const rest = renderFiles.filter(f => !placed.has(f.path));
-		if (rest.length > 0) {
-			panes.push({ label: l10n.t('Not in the plan'), files: rest });
-		}
-
+		const panes = this.getOrientPanes(orient, renderFiles);
 		this._orientPaneKeys = panes.map(pane => pane.label);
 
 		return html`<div class="scope-files__tree">

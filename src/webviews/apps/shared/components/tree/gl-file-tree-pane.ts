@@ -482,8 +482,9 @@ export class GlFileTreePane extends LitElement {
 		}
 	}
 
-	/** Set when the model was rebuilt this cycle; `updated` then announces the new rendered order. */
+	/** Set when the model was rebuilt this cycle; `updated` then announces the rendered order if it changed. */
 	private _treeOrderChanged = false;
+	private _announcedTreeOrder?: string[];
 
 	/** Re-applies remembered folder collapse state onto a freshly-built (default-expanded) model. */
 	private applyCollapsedState(nodes: TreeModel[]): void {
@@ -510,14 +511,21 @@ export class GlFileTreePane extends LitElement {
 	override updated(): void {
 		if (this._treeOrderChanged) {
 			this._treeOrderChanged = false;
-			// Consumers that read the files in the order shown (the review's reading order) follow this
-			this.dispatchEvent(
-				new CustomEvent<{ paths: string[] }>('tree-order-changed', {
-					detail: { paths: getTreeFilePaths(this._cachedTreeModel ?? []) },
-					bubbles: true,
-					composed: true,
-				}),
-			);
+			// Consumers that read the files in the order shown (the review's reading order) follow this.
+			// Only a real change is announced: a consumer that re-renders on it would otherwise feed a
+			// rebuilt-but-identical model straight back into another rebuild
+			const paths = getTreeFilePaths(this._cachedTreeModel ?? []);
+			const announced = this._announcedTreeOrder;
+			if (announced == null || announced.length !== paths.length || announced.some((p, i) => p !== paths[i])) {
+				this._announcedTreeOrder = paths;
+				this.dispatchEvent(
+					new CustomEvent<{ paths: string[] }>('tree-order-changed', {
+						detail: { paths: paths },
+						bubbles: true,
+						composed: true,
+					}),
+				);
+			}
 		}
 
 		if (this._pendingScrollRestore != null) {
