@@ -363,6 +363,8 @@ export class GraphInspectServices {
 		byPath: Map<string, string>;
 		marked: string[];
 		active?: string;
+		/** Pending confirmation that no review diff is active — see `updateActiveReviewFile` */
+		activeSettling?: ReturnType<typeof setTimeout>;
 		tracking: Disposable;
 	};
 
@@ -1578,6 +1580,9 @@ export class GraphInspectServices {
 	}
 
 	private clearReviewFiles(): void {
+		if (this._reviewFiles?.activeSettling != null) {
+			clearTimeout(this._reviewFiles.activeSettling);
+		}
 		this._reviewFiles?.tracking.dispose();
 		this._reviewFiles = undefined;
 		releaseReviewFiles(this);
@@ -1612,7 +1617,25 @@ export class GraphInspectServices {
 		if (files == null) return;
 
 		const active = this.findActiveReviewFile();
+		if (files.activeSettling != null) {
+			clearTimeout(files.activeSettling);
+			files.activeSettling = undefined;
+		}
 		if (active === files.active) return;
+
+		// Replacing a preview tab passes through a moment with no review diff active; waiting it out
+		// keeps the panel from flashing its progress state between two files
+		if (active == null) {
+			files.activeSettling = setTimeout(() => {
+				files.activeSettling = undefined;
+				const settled = this.findActiveReviewFile();
+				if (settled === files.active) return;
+
+				files.active = settled;
+				this._reviewReadingEvent.fire(this.getReviewReadingState());
+			}, 250);
+			return;
+		}
 
 		files.active = active;
 		this._reviewReadingEvent.fire(this.getReviewReadingState());
