@@ -97,18 +97,28 @@ export function getReviewThreadItems(
 }
 
 /** The stops of a walk, in reading order — the session's order first, then tree order (path-sorted);
- *  set-aside files left out. */
+ *  set-aside files left out; the tree's own rendered order, when given, orders what the plan doesn't. */
 export function getReviewReadingOrder(
 	session: ReviewSession | undefined,
 	files: readonly ReviewFileIdentity[] | undefined,
+	treeOrder?: readonly string[],
 ): string[] {
 	const present = new Set((files ?? []).map(f => f.path));
 	const ordered = (session?.order ?? []).filter(p => present.has(p) && !session?.excluded.has(p));
 	const placed = new Set(ordered);
+	// The rest reads top to bottom as the checklist shows it; by path until the tree has said its order
+	const rank = new Map((treeOrder ?? []).map((p, i) => [p, i]));
 	const rest = (files ?? [])
 		.filter(f => !placed.has(f.path) && !session?.excluded.has(f.path))
 		.map(f => f.path)
-		.sort((a, b) => a.localeCompare(b));
+		.sort((a, b) => {
+			const ra = rank.get(a);
+			const rb = rank.get(b);
+			if (ra != null && rb != null) return ra - rb;
+			if (ra != null) return -1;
+			if (rb != null) return 1;
+			return a.localeCompare(b);
+		});
 	return [...ordered, ...rest];
 }
 

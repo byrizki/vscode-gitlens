@@ -300,6 +300,13 @@ export class GlDetailsReviewModePanel extends LitElement {
 		return this._runExclusions;
 	}
 	@state() private _runExclusions: ReadonlySet<string> = emptyReviewSession.excluded;
+
+	/** Each checklist pane's files in the order it renders them, by pane key — the reading order's source. */
+	@state() private _treeOrders: ReadonlyMap<string, readonly string[]> = new Map();
+	/** The orient plan's pane keys in pane order, from the last render of the plan. */
+	private _orientPaneKeys: string[] = [];
+	/** The reading order last announced to the host-facing side, to announce only changes. */
+	private _announcedOrder?: readonly string[];
 	/** Bumped with the session so the file tree re-reads its callbacks (decorations, row actions). */
 	@state() private _sessionRevision = 0;
 
@@ -854,6 +861,42 @@ export class GlDetailsReviewModePanel extends LitElement {
 		return shortcut == null ? label : l10n.t('{label} ({shortcut})', { label: label, shortcut: shortcut });
 	}
 
+	private onTreeOrderChanged(key: string, e: CustomEvent<{ paths: string[] }>): void {
+		e.stopPropagation();
+		const next = new Map(this._treeOrders);
+		next.set(key, e.detail.paths);
+		this._treeOrders = next;
+	}
+
+	/** The checklist's files top to bottom: the plan's panes in turn, or the one tree. */
+	private get treeOrder(): string[] | undefined {
+		const keys = this.orient != null ? this._orientPaneKeys : ['tree'];
+		const paths = keys.flatMap(key => this._treeOrders.get(key) ?? []);
+		return paths.length > 0 ? paths : undefined;
+	}
+
+	/** The files to read in order — the plan's order first, then the checklist top to bottom. */
+	get readingOrder(): string[] {
+		return getReviewReadingOrder(this.session, this.files, this.treeOrder);
+	}
+
+	override updated(): void {
+		const order = this.readingOrder;
+		const announced = this._announcedOrder;
+		if (announced != null && announced.length === order.length && announced.every((p, i) => p === order[i])) {
+			return;
+		}
+
+		this._announcedOrder = order;
+		this.dispatchEvent(
+			new CustomEvent<{ paths: string[] }>('review-reading-order', {
+				detail: { paths: order },
+				bubbles: true,
+				composed: true,
+			}),
+		);
+	}
+
 	/** The strip above the checklist: the file being read and its steps while a review diff is active, the
 	 *  progress otherwise, and the review's ending — with a summary to take away — once every file is viewed. */
 	private renderDoneCard() {
@@ -934,7 +977,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 	/** Follows the editor: the review file whose diff is active gets its place in the order and the steps
 	 *  from there; with no review diff active the strip reads as plain progress. */
 	private renderReadingStrip(progress: ReviewProgress) {
-		const paths = getReviewReadingOrder(this.session, this.files);
+		const paths = this.readingOrder;
 		const index = this.reading?.active != null ? paths.indexOf(this.reading.active) : -1;
 		const active = paths[index];
 		if (active == null) {
@@ -960,7 +1003,6 @@ export class GlDetailsReviewModePanel extends LitElement {
 					appearance="secondary"
 					density="compact"
 					tooltip=${this.withReadingShortcut(l10n.t('Previous File in Review'), 'previous')}
-					?disabled=${index <= 0}
 					@click=${() => this.handleReadingStep('previous', active)}
 				>
 					<code-icon icon="arrow-left"></code-icon>
@@ -976,7 +1018,6 @@ export class GlDetailsReviewModePanel extends LitElement {
 					appearance="secondary"
 					density="compact"
 					tooltip=${this.withReadingShortcut(l10n.t('Next File in Review'), 'next')}
-					?disabled=${index >= paths.length - 1}
 					@click=${() => this.handleReadingStep('next', active)}
 				>
 					<code-icon icon="arrow-right"></code-icon>
@@ -1088,6 +1129,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 					?multi-selectable=${true}
 					?show-file-icons=${true}
 					.collapsable=${false}
+					@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) => this.onTreeOrderChanged('tree', e)}
 					.filesLayout=${this.paneFilesLayout}
 					.checkableStates=${checkableStates}
 					.fileActions=${this.fileActionsForFile}
@@ -1172,6 +1214,8 @@ export class GlDetailsReviewModePanel extends LitElement {
 			panes.push({ label: l10n.t('Not in the plan'), files: rest });
 		}
 
+		this._orientPaneKeys = panes.map(pane => pane.label);
+
 		return html`<div class="scope-files__tree">
 			<div class="review-orient">
 				<code-icon class="review-orient__icon" icon="zap"></code-icon>
@@ -1193,6 +1237,8 @@ export class GlDetailsReviewModePanel extends LitElement {
 					pane => html`<gl-file-tree-pane
 						header=${pane.label}
 						.files=${pane.files}
+						@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) =>
+							this.onTreeOrderChanged(pane.label, e)}
 						?checkable=${true}
 						?multi-selectable=${true}
 						?show-file-icons=${true}
@@ -1240,7 +1286,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 				detail: {
 					prompt: this.idleDraftLive || undefined,
 					scopeLabel: this.scopeContextLabel(),
-					files: getReviewReadingOrder(this.session, this.files),
+					files: this.readingOrder,
 				},
 				bubbles: true,
 				composed: true,

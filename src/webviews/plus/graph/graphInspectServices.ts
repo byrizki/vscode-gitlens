@@ -1635,21 +1635,23 @@ export class GraphInspectServices {
 
 		const open = (path: string) =>
 			this.openReviewFile({ repoPath: files.repoPath, lhs: files.lhs, rhs: files.rhs, path: path });
+		// The order loops: after the last file comes the first, before the first the last
+		const count = files.paths.length;
 		switch (action) {
 			case 'markViewed':
 				files.marked.push(files.paths[index]);
-				if (index < files.paths.length - 1) {
-					open(files.paths[index + 1]);
+				if (count > 1) {
+					open(files.paths[(index + 1) % count]);
 				}
 				break;
 			case 'next':
-				if (index < files.paths.length - 1) {
-					open(files.paths[index + 1]);
+				if (count > 1) {
+					open(files.paths[(index + 1) % count]);
 				}
 				break;
 			case 'previous':
-				if (index > 0) {
-					open(files.paths[index - 1]);
+				if (count > 1) {
+					open(files.paths[(index - 1 + count) % count]);
 				}
 				break;
 		}

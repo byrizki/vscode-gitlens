@@ -232,8 +232,9 @@ are tracked on the entry too (`entry.focusAreaRuns`, abortable with everything e
 `abortRunningOperation`).
 
 **Reading** is host-driven but editor-anchored: `gl-graph-details-panel.syncReviewFiles()` sends the
-review's files in reading order (`getReviewReadingOrder`: the plan's order first, then tree order,
-minus set-aside files) over `graphInspect.setReviewFiles` whenever an input changes, and clears them
+review's files in reading order (`getReviewReadingOrder`: the plan's order first, then the checklist
+top to bottom as its `gl-file-tree-pane`s render it — each pane announces its order with
+`tree-order-changed`, the panel folds them into `review-reading-order` — minus set-aside files) over `graphInspect.setReviewFiles` whenever an input changes, and clears them
 on leaving the mode. The host (`reviewReading.ts` owner registry, `gitlens:review:reading` /
 `gitlens:review:files` context keys) lights the diff title buttons and keybindings on those documents,
 follows the active tab to name the file being read, and steps from the file a command was invoked on —

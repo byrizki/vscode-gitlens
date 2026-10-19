@@ -39,6 +39,7 @@ import {
 	buildGroupedTree,
 	getLayoutInfo,
 	getStatusDecoration,
+	getTreeFilePaths,
 	isTreeLayout,
 	nextContextMatchVisibility,
 	renderContextMatchVisibilityAction,
@@ -471,8 +472,12 @@ export class GlFileTreePane extends LitElement {
 				mixedPaths: this.mixedPaths,
 			});
 			this.applyCollapsedState(this._cachedTreeModel);
+			this._treeOrderChanged = true;
 		}
 	}
+
+	/** Set when the model was rebuilt this cycle; `updated` then announces the new rendered order. */
+	private _treeOrderChanged = false;
 
 	/** Re-applies remembered folder collapse state onto a freshly-built (default-expanded) model. */
 	private applyCollapsedState(nodes: TreeModel[]): void {
@@ -497,6 +502,18 @@ export class GlFileTreePane extends LitElement {
 	};
 
 	override updated(): void {
+		if (this._treeOrderChanged) {
+			this._treeOrderChanged = false;
+			// Consumers that read the files in the order shown (the review's reading order) follow this
+			this.dispatchEvent(
+				new CustomEvent<{ paths: string[] }>('tree-order-changed', {
+					detail: { paths: getTreeFilePaths(this._cachedTreeModel ?? []) },
+					bubbles: true,
+					composed: true,
+				}),
+			);
+		}
+
 		if (this._pendingScrollRestore != null) {
 			const scrollable = this.getTreeScrollContainer();
 			if (scrollable != null) {

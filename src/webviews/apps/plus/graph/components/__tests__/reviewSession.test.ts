@@ -183,6 +183,28 @@ suite('reviewSession — walk order', () => {
 		assert.strictEqual(withReadingOrder(emptyReviewSession, undefined), emptyReviewSession);
 	});
 
+	test("getReviewReadingOrder follows the tree's rendered order for what the plan doesn't place", () => {
+		const files = [{ path: 'CHANGELOG.md' }, { path: 'src/b.ts' }, { path: 'src/a/x.ts' }, { path: 'src/c.ts' }];
+		const tree = ['src/a/x.ts', 'src/b.ts', 'src/c.ts', 'CHANGELOG.md'];
+		assert.deepStrictEqual(getReviewReadingOrder(emptyReviewSession, files, tree), tree);
+
+		const session = withReadingOrder(emptyReviewSession, ['src/c.ts']);
+		assert.deepStrictEqual(getReviewReadingOrder(session, files, tree), [
+			'src/c.ts',
+			'src/a/x.ts',
+			'src/b.ts',
+			'CHANGELOG.md',
+		]);
+
+		// A file the tree has not rendered yet trails, by path
+		assert.deepStrictEqual(getReviewReadingOrder(emptyReviewSession, files, ['src/c.ts', 'src/b.ts']), [
+			'src/c.ts',
+			'src/b.ts',
+			'CHANGELOG.md',
+			'src/a/x.ts',
+		]);
+	});
+
 	test("getReviewReadingShortcut names the keymap's chord for each step, and nothing when shortcuts are off", () => {
 		assert.strictEqual(getReviewReadingShortcut('alternate', 'next', true), '⌥]');
 		assert.strictEqual(getReviewReadingShortcut('alternate', 'previous', false), 'Alt+[');

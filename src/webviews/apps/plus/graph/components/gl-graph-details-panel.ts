@@ -2440,6 +2440,9 @@ export class GlGraphDetailsPanel extends SignalWatcher(LitElement) {
 		this._actions.setReviewThreads(args);
 	}
 
+	/** The review panel's reading order — the plan's order, then the checklist top to bottom as rendered. */
+	private _reviewReadingOrder?: readonly string[];
+
 	/** What the host currently holds as the review's files — identity of the inputs it was built from. */
 	private _reviewFilesSynced?: {
 		files: unknown;
@@ -2459,7 +2462,7 @@ export class GlGraphDetailsPanel extends SignalWatcher(LitElement) {
 		const entry =
 			inReview && this.engagedRunningOperation?.kind === 'review' ? this.engagedRunningOperation : undefined;
 		const files = inReview ? this._actions.resources.scopeFiles.value.get() : undefined;
-		const order = entry?.session?.order;
+		const order = inReview ? this._reviewReadingOrder : undefined;
 		const excluded = entry?.session?.excluded;
 		const scope = this._state.scope.get();
 		const repoPath = this.effectiveRepoPath;
@@ -2476,7 +2479,8 @@ export class GlGraphDetailsPanel extends SignalWatcher(LitElement) {
 		}
 
 		const endpoints = getReviewDiffEndpoints(scope);
-		const paths = inReview && files != null ? getReviewReadingOrder(entry?.session, files) : [];
+		// The panel announces its order once rendered; until then the plan-then-path order stands in
+		const paths = inReview && files != null ? (order ?? getReviewReadingOrder(entry?.session, files)) : [];
 		if (paths.length === 0 || repoPath == null || endpoints == null) {
 			if (synced != null) {
 				this._reviewFilesSynced = undefined;
@@ -2486,7 +2490,7 @@ export class GlGraphDetailsPanel extends SignalWatcher(LitElement) {
 		}
 
 		this._reviewFilesSynced = { files: files, order: order, excluded: excluded, scope: scope, repoPath: repoPath };
-		this._actions.setReviewFiles({ repoPath: repoPath, lhs: endpoints.lhs, rhs: endpoints.rhs, paths: paths });
+		this._actions.setReviewFiles({ repoPath: repoPath, lhs: endpoints.lhs, rhs: endpoints.rhs, paths: [...paths] });
 	}
 
 	/** Opens a review file's diff with the review's endpoints — from the checklist, a finding, or a plan —
@@ -4139,6 +4143,10 @@ export class GlGraphDetailsPanel extends SignalWatcher(LitElement) {
 			@review-deep-review-stop=${() => this._workflow.review.stopDeepReview()}
 			@review-reading-step=${(e: CustomEvent<ReviewReadingStepDetail>) =>
 				this._actions.stepReviewReading(e.detail.action, e.detail.path)}
+			@review-reading-order=${(e: CustomEvent<{ paths: string[] }>) => {
+				this._reviewReadingOrder = e.detail.paths;
+				this.requestUpdate();
+			}}
 			@review-open-file=${(e: CustomEvent<ReviewOpenFileDetail>) =>
 				this.openReviewFile(e.detail.filePath, e.detail.line, e.detail.lineEnd)}
 			@review-forward-invalidate=${() => this._workflow.review.invalidateSnapshot()}
