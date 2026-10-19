@@ -6,9 +6,9 @@ import {
 	getClosedFindingIds,
 	getReviewFileProgress,
 	getReviewProgress,
+	getReviewReadingOrder,
+	getReviewReadingShortcut,
 	getReviewThreadItems,
-	getReviewWalkPaths,
-	getReviewWalkShortcut,
 	isReviewComplete,
 	withFileExcluded,
 	withFilesViewed,
@@ -164,7 +164,7 @@ suite('reviewSession — thread projection', () => {
 suite('reviewSession — walk order', () => {
 	test('tree order by default; a reading order goes first, with the rest after it and set-aside files out', () => {
 		const files = [{ path: 'src/z.ts' }, { path: 'src/a.ts' }, { path: 'src/m.ts' }, { path: 'test/t.ts' }];
-		assert.deepStrictEqual(getReviewWalkPaths(emptyReviewSession, files), [
+		assert.deepStrictEqual(getReviewReadingOrder(emptyReviewSession, files), [
 			'src/a.ts',
 			'src/m.ts',
 			'src/z.ts',
@@ -173,7 +173,7 @@ suite('reviewSession — walk order', () => {
 
 		let session = withReadingOrder(emptyReviewSession, ['src/m.ts', 'gone.ts', 'src/z.ts']);
 		session = withFileExcluded(session, 'test/t.ts', true);
-		assert.deepStrictEqual(getReviewWalkPaths(session, files), ['src/m.ts', 'src/z.ts', 'src/a.ts']);
+		assert.deepStrictEqual(getReviewReadingOrder(session, files), ['src/m.ts', 'src/z.ts', 'src/a.ts']);
 
 		assert.strictEqual(
 			withReadingOrder(session, ['src/m.ts', 'gone.ts', 'src/z.ts']),
@@ -183,12 +183,12 @@ suite('reviewSession — walk order', () => {
 		assert.strictEqual(withReadingOrder(emptyReviewSession, undefined), emptyReviewSession);
 	});
 
-	test("getReviewWalkShortcut names the keymap's chord for each step, and nothing when shortcuts are off", () => {
-		assert.strictEqual(getReviewWalkShortcut('alternate', 'next', true), '⌥]');
-		assert.strictEqual(getReviewWalkShortcut('alternate', 'previous', false), 'Alt+[');
-		assert.strictEqual(getReviewWalkShortcut('chorded', 'markViewed', true), '⌘⌥G V');
-		assert.strictEqual(getReviewWalkShortcut('chorded', 'next', false), 'Ctrl+Shift+G ]');
-		assert.strictEqual(getReviewWalkShortcut('none', 'next', true), undefined);
-		assert.strictEqual(getReviewWalkShortcut(undefined, 'next', true), undefined);
+	test("getReviewReadingShortcut names the keymap's chord for each step, and nothing when shortcuts are off", () => {
+		assert.strictEqual(getReviewReadingShortcut('alternate', 'next', true), '⌥]');
+		assert.strictEqual(getReviewReadingShortcut('alternate', 'previous', false), 'Alt+[');
+		assert.strictEqual(getReviewReadingShortcut('chorded', 'markViewed', true), '⌘⌥G V');
+		assert.strictEqual(getReviewReadingShortcut('chorded', 'next', false), 'Ctrl+Shift+G ]');
+		assert.strictEqual(getReviewReadingShortcut('none', 'next', true), undefined);
+		assert.strictEqual(getReviewReadingShortcut(undefined, 'next', true), undefined);
 	});
 });
