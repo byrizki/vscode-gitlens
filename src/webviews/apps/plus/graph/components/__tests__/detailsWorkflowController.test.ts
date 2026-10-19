@@ -691,28 +691,13 @@ suite('DetailsWorkflowController — running-operations registry', () => {
 		assert.deepStrictEqual(entry?.reading, { active: 'src/a.ts', marksApplied: 1 });
 	});
 
-	test('a reading plan is kept across runs, gives the files their order when applied, and clears back to tree order', async () => {
+	test('a reading plan lands with its order, is kept across runs, and clears back to tree order', async () => {
 		const host = new FakeHost({
 			repoPath: '/A',
 			graphRepoPath: '/A',
 			selection: { sha: uncommitted, shas: undefined, repoPath: '/A' },
 		});
 		const state = createDetailsState();
-		const actions = new DetailsActions(
-			state,
-			createServices({ reviewChanges: async () => makeReviewResult('run') }),
-			createResources(),
-		);
-		const controller = new DetailsWorkflowController(host, actions);
-		host.connectAll();
-		host.tickHostUpdate();
-
-		state.scope.set({ type: 'wip', includeUnstaged: true, includeStaged: false, includeShas: [] });
-		state.activeMode.set('review');
-		state.activeModeContext.set('wip');
-		state.activeModeRepoPath.set('/A');
-		state.activeModeSha.set(uncommitted);
-
 		const orient = {
 			overview: 'plan',
 			groups: [
@@ -727,33 +712,42 @@ suite('DetailsWorkflowController — running-operations registry', () => {
 				},
 			],
 		} as const;
-		host.crossPaneState.runningOperations.set(
-			new Map([
-				[
-					wipKey('/A'),
-					{ review: { ...makeReviewBucket('/A', makeReviewResult('x')).review!, orient: orient } },
-				],
-			]),
+		const actions = new DetailsActions(
+			state,
+			createServices({ reviewChanges: async () => makeReviewResult('run') }),
+			createResources(),
 		);
+		actions.orientChanges = async () => ({ result: orient });
+		const controller = new DetailsWorkflowController(host, actions);
+		host.connectAll();
+		host.tickHostUpdate();
 
+		state.scope.set({ type: 'wip', includeUnstaged: true, includeStaged: false, includeShas: [] });
+		state.activeMode.set('review');
+		state.activeModeContext.set('wip');
+		state.activeModeRepoPath.set('/A');
+		state.activeModeSha.set(uncommitted);
 		actions.resources.scopeFiles.mutate([{ path: 'src/a.ts' }, { path: 'src/b.ts' }] as never);
-		assert.strictEqual(
-			controller.review.applyOrientOrder(),
-			'src/b.ts',
-			'the first file of the plan is where to start',
-		);
+
+		controller.review.runOrient('/A', undefined, undefined);
 		let entry = host.crossPaneState.runningOperations.get().get(wipKey('/A'))?.review;
-		assert.deepStrictEqual(entry?.session?.order, ['src/b.ts', 'src/a.ts']);
+		assert.ok(entry?.orientRun, 'the plan is being made');
+		await flush();
+		entry = host.crossPaneState.runningOperations.get().get(wipKey('/A'))?.review;
+		assert.strictEqual(entry?.orientRun, undefined);
+		assert.strictEqual(entry?.orient, orient);
+		assert.deepStrictEqual(entry?.session?.order, ['src/b.ts', 'src/a.ts'], 'the order applies as the plan lands');
 
 		controller.runReview('/A', undefined, undefined, 0);
 		await flush();
 		entry = host.crossPaneState.runningOperations.get().get(wipKey('/A'))?.review;
 		assert.strictEqual(entry?.orient, orient, 'the plan outlives the run');
+		assert.deepStrictEqual(entry?.session?.order, ['src/b.ts', 'src/a.ts']);
 
 		controller.review.clearOrient();
 		entry = host.crossPaneState.runningOperations.get().get(wipKey('/A'))?.review;
 		assert.strictEqual(entry?.orient, undefined);
-		assert.strictEqual(entry?.session?.order, undefined, 'clearing the plan drops its order too');
+		assert.strictEqual(entry?.session?.order, undefined, 'dismissing the plan drops its order too');
 	});
 
 	test('what a deep review reports joins the result as the agent area, once per sequence, even before any run', () => {

@@ -1246,11 +1246,13 @@ export class GlDetailsReviewModePanel extends LitElement {
 					<div class="review-orient__overview">${orient.overview}</div>
 				</div>
 				<div class="review-orient__actions">
-					<gl-button density="compact" @click=${this.handleOrientApply}>
-						<code-icon icon="play" slot="prefix"></code-icon>${l10n.t('Read in This Order')}
-					</gl-button>
-					<gl-button appearance="secondary" density="compact" @click=${this.handleOrientClear}>
-						${l10n.t('Keep Tree Order')}
+					<gl-button
+						appearance="secondary"
+						density="compact"
+						tooltip=${l10n.t('Drop the plan and go back to the file tree')}
+						@click=${this.handleOrientClear}
+					>
+						${l10n.t('Dismiss Plan')}
 					</gl-button>
 				</div>
 			</div>
@@ -1349,10 +1351,6 @@ export class GlDetailsReviewModePanel extends LitElement {
 			}
 		</div>`;
 	}
-
-	private handleOrientApply = (): void => {
-		this.dispatchEvent(new CustomEvent('review-orient-apply', { bubbles: true, composed: true }));
-	};
 
 	private handleOrientClear = (): void => {
 		this.dispatchEvent(new CustomEvent('review-orient-clear', { bubbles: true, composed: true }));
