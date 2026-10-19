@@ -6,8 +6,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-## [19.4.0] - 2026-10-15
-
 ### Added
 
 - Adds review sessions to the _Commit Graph_'s _Review Changes_ mode &mdash; the changeset is the thing being reviewed and AI is one lens on it
@@ -20,6 +18,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   - Findings can be _Resolved_, _Dismissed_ and _Reopened_, and a review ends: once every file is viewed, a _Review complete_ summary offers _Copy Summary_ and _Send Remaining to Agent_
   - The file list stays in place while an AI review runs and alongside its findings, and _Discard Findings_ drops only the AI's findings &mdash; your viewed progress and the review stay
   - Review mode no longer requires AI features to be enabled &mdash; only _Start Review_ does
+
+### Fixed
+
+- Fixes a focus-area review in the _Commit Graph_'s _Review Changes_ mode ignoring the instructions given for the review, not stopping when the review is discarded or cancelled, and opening a finding's file without its line range
+- Fixes review findings in the _Commit Graph_'s _Review Changes_ mode pointing at the wrong lines when a review spans staged changes or several commits &mdash; a finding now opens on the line it quotes, or on the file alone when that line is no longer there
+
+## [19.4.0] - 2026-10-15
+
+### Added
 
 - Adds _Publish Repository_ to the _Commit Graph_ for a repository with no remotes &mdash; the header, _Working Changes_ panel, overview, and branch details now offer to create a hosted repository (through VS Code's publish flow) instead of a _Publish Branch_ that could only report "No remotes found"; the _Git Command Palette_'s _Push_ offers the same escape when there are no remotes
   - Offers _Add Remote…_ beside _Publish Repository…_ in the push wizard and the _Working Changes_ next steps, for hosts VS Code can't publish to, and hides _Fetch_ while the repository has no remotes
@@ -44,8 +51,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Fixes GitLens terminal links (commits, branches, tags, ranges, and git commands) not working in multi-repository workspaces &mdash; links now use the repository containing the terminal's working directory, when shell integration reports it ([#5986](https://github.com/gitkraken/vscode-gitlens/issues/5986)) &mdash; thanks to [PR #5196](https://github.com/gitkraken/vscode-gitlens/pull/5196) by yuezichong ([@qianxunslimg](https://github.com/qianxunslimg))
 - Fixes Pro feature gates and account surfaces still offering _Reactivate Pro Trial_ after the server refused the reactivation &mdash; once refused, they show the _Upgrade to Pro_ messaging instead ([#5987](https://github.com/gitkraken/vscode-gitlens/issues/5987))
-- Fixes a focus-area review in the _Commit Graph_'s _Review Changes_ mode ignoring the instructions given for the review, not stopping when the review is discarded or cancelled, and opening a finding's file without its line range
-- Fixes review findings in the _Commit Graph_'s _Review Changes_ mode pointing at the wrong lines when a review spans staged changes or several commits &mdash; a finding now opens on the line it quotes, or on the file alone when that line is no longer there
 - Fixes _Push_ from the _Git Command Palette_ on a branch with no upstream showing a plain push confirmation (which then failed) instead of the publish step
 - Fixes pressing <kbd>Space</kbd> on a _Git Command Palette_ confirmation step breaking the command &mdash; e.g. _Delete Worktree_ would stop responding and never delete the worktree
 - Fixes force-deleting a worktree skipping the uncommitted-changes warning when GitLens couldn't check the worktree for changes &mdash; it now asks before deleting a worktree it couldn't check
