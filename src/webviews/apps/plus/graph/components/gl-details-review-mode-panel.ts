@@ -1042,7 +1042,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 			</div>
 			<div class="review-walk__actions">
 				<gl-button
-					appearance="secondary"
+					appearance="toolbar"
 					density="compact"
 					tooltip=${this.withReadingShortcut(l10n.t('Previous File in Review'), 'previous')}
 					@click=${() => this.handleReadingStep('previous', active)}
@@ -1050,7 +1050,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 					<code-icon icon="arrow-left"></code-icon>
 				</gl-button>
 				<gl-button
-					appearance="secondary"
+					appearance="toolbar"
 					density="compact"
 					tooltip=${this.withReadingShortcut(l10n.t('Mark Viewed & Next'), 'markViewed')}
 					@click=${() => this.handleReadingStep('markViewed', active)}
@@ -1058,7 +1058,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 					<code-icon icon="check" slot="prefix"></code-icon>${l10n.t('Mark Viewed & Next')}
 				</gl-button>
 				<gl-button
-					appearance="secondary"
+					appearance="toolbar"
 					density="compact"
 					tooltip=${this.withReadingShortcut(l10n.t('Next File in Review'), 'next')}
 					@click=${() => this.handleReadingStep('next', active)}
@@ -1246,7 +1246,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 					</div>
 					<div class="review-orient__actions">
 						<gl-button
-							appearance="secondary"
+							appearance="toolbar"
 							density="compact"
 							tooltip=${l10n.t('Drop the plan and go back to the file tree')}
 							@click=${this.handleOrientClear}
