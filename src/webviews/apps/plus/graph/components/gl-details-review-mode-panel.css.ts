@@ -239,8 +239,10 @@ export const reviewModePanelStyles = css`
 	}
 
 	.scope-files__tree--flow webview-pane-group {
-		display: block;
+		display: flex;
 		flex: none;
+		flex-direction: column;
+		gap: var(--gl-space-12);
 		min-height: 0;
 		overflow: visible;
 	}
@@ -272,7 +274,7 @@ export const reviewModePanelStyles = css`
 	}
 
 	.review-orient__group-summary {
-		padding: 0 var(--gl-space-10) var(--gl-space-4);
+		padding: 0 var(--gl-space-10) var(--gl-space-8);
 	}
 
 	.review-orient__actions {
