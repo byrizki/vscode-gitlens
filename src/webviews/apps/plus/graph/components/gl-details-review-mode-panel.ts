@@ -1238,7 +1238,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 		this._orientPaneKeys = panes.map(pane => pane.label);
 
 		return html`${this.renderReadingOrEnding()}
-			<div class="scope-files__tree">
+			<div class="scope-files__tree scope-files__tree--flow">
 				<div class="review-orient">
 					<div class="review-orient__body">
 						<div class="review-orient__title">${l10n.t('Reading plan')}</div>
@@ -1255,9 +1255,10 @@ export class GlDetailsReviewModePanel extends LitElement {
 						</gl-button>
 					</div>
 				</div>
-				<webview-pane-group flexible>
+				<webview-pane-group>
 					${panes.map(
 						pane => html`<gl-file-tree-pane
+							flow
 							header=${pane.label}
 							.files=${pane.files}
 							.revealPath=${this.reading?.active}

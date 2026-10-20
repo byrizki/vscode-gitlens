@@ -231,7 +231,20 @@ export const reviewModePanelStyles = css`
 	}
 
 	/* The reading plan above the grouped checklist */
-	/* The plan reads as one document: a title, the overview, then each group's heading, summary and files */
+	/* The plan reads as one document: a title, the overview, then each group's heading, summary and files,
+	   each as tall as it is — a collapsed group takes no room, a long one runs on — and the column scrolls */
+	.scope-files__tree--flow {
+		display: block;
+		overflow: auto;
+	}
+
+	.scope-files__tree--flow webview-pane-group {
+		display: block;
+		flex: none;
+		min-height: 0;
+		overflow: visible;
+	}
+
 	.review-orient {
 		display: flex;
 		flex-wrap: wrap;

@@ -20,6 +20,14 @@ export const fileTreeStyles = css`
 		overflow: hidden;
 	}
 
+	/* Document flow (see the \`flow\` property): content height all the way down, no inner scrolling */
+	:host([flow]),
+	:host([flow]) webview-pane,
+	:host([flow]) gl-tree-view {
+		flex: none;
+		overflow: visible;
+	}
+
 	/* Checkbox mode: pull the title (and its select-all checkbox) back so the checkbox's left
 	   edge sits at the content inset, aligned with the filter box and the commit box's checkbox
 	   below — the default non-collapsable title indent lands it 4px to their right. */

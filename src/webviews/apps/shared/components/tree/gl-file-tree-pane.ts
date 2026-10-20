@@ -191,6 +191,11 @@ export class GlFileTreePane extends LitElement {
 	@property({ attribute: 'reveal-path' })
 	revealPath?: string;
 
+	/** Document flow: the pane is as tall as its tree and leaves scrolling to an ancestor — for panes
+	 *  stacked as one document (a review's reading plan). Off, the pane fills its box and scrolls itself. */
+	@property({ type: Boolean, reflect: true })
+	flow = false;
+
 	/** Opt-in: makes file rows draggable (native drag carrying the file `path`). Off by default;
 	 *  set by consumers that support dropping files elsewhere (e.g. compose file→commit move). */
 	@property({ type: Boolean, attribute: 'draggable-files' })
@@ -1084,6 +1089,7 @@ export class GlFileTreePane extends LitElement {
 			?filterable=${this.effectiveShowSearchBox}
 			?multi-selectable=${this.multiSelectable}
 			?draggable-files=${this.draggableFiles}
+			?flow=${this.flow}
 			filter-placeholder=${l10n.t('Filter files...')}
 			search-placeholder=${l10n.t('Search files...')}
 			empty-text=${emptyText}
