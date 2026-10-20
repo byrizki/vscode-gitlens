@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixes Azure DevOps Services account-wide pull request reads (`listPullRequestsPage`, the sweeps and the Launchpad search) returning no authored or review-requested pull requests, and failing the group read with "Azure DevOps returned no group membership for the current user", for accounts whose profile id differs from their identity in an organization: the creator and reviewer filters, the group read and each row's `viewer` and `authoredByMe` now use the user's identity in that organization, read from its `ConnectionData` once per credential and organization (in parallel, dropped on a re-sync), as Azure DevOps Server already did per collection; `getPullRequestsBatch` and `getPullRequestsForBranches` match authorship the same way. An organization or collection whose identity can't be read, a refused credential included, is now reported as a failure scoped to it while the others' pull requests are kept; a credential refused everywhere still fails the read. A row with reviewers or assignees but no author now gets a `viewer`, and its `authoredByMe` is `undefined` rather than `false`, for every provider ([#6032](https://github.com/gitkraken/vscode-gitlens/issues/6032)) (plus/integrations)
+
 ## [0.15.2] - 2026-10-20
 
 ### Changed

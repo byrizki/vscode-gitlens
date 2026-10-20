@@ -89,6 +89,8 @@ function createServer(options: {
 	identities?: Record<string, string>;
 	/** Refuses the current user's connection data below these collections, as a transient outage would. */
 	failIdentityFor?: string[];
+	/** The status `failIdentityFor` refuses with: 500 when omitted. */
+	failIdentityStatus?: number;
 	/** Refuses the current user's server-level connection data, as a transient outage would. */
 	failServerIdentity?: boolean;
 }) {
@@ -146,8 +148,10 @@ function createServer(options: {
 		const serverRoute = (segments[0] === '_apis' ? segments : segments.slice(1)).join('/');
 		if (serverRoute.toLowerCase() === '_apis/connectiondata') {
 			const atServer = segments[0] === '_apis';
-			if (atServer ? options.failServerIdentity : options.failIdentityFor?.includes(segments[0])) {
-				return json({ message: 'boom' }, 500);
+			if (atServer) {
+				if (options.failServerIdentity) return json({ message: 'boom' }, 500);
+			} else if (options.failIdentityFor?.includes(segments[0])) {
+				return json({ message: 'boom' }, options.failIdentityStatus ?? 500);
 			}
 
 			const id = atServer ? `server-${me}` : (options.identities?.[segments[0]] ?? me);
@@ -2392,6 +2396,33 @@ suite('Azure DevOps Server current-account identity (#5916)', () => {
 					],
 				);
 			}
+		});
+	});
+
+	test("a collection refusing the credential its identity is read with is that collection's auth failure (#6032)", async () => {
+		const server = createServer({
+			installation: 'https://server.test/tfs',
+			collections: collections,
+			identities: identities,
+			failIdentityFor: ['Second'],
+			failIdentityStatus: 401,
+		});
+		await withManager(server, async (manager, target) => {
+			const page = await manager.listPullRequestsPage({ ...target, states: ['all'] });
+			assert.equal(page.fetchFailed, true);
+			assert.deepEqual(
+				rows(page.items),
+				[
+					{ pr: 'Default Collection/site#1', authoredByMe: true, viewer: 'me-a' },
+					{ pr: 'Default Collection/site#2', authoredByMe: false, viewer: 'me-a' },
+				],
+				"the other collection's pull requests survive",
+			);
+			assert.deepEqual(
+				page.warnings.map(w => ({ kind: w.kind, isAuth: w.isAuth, scope: w.scope })),
+				[{ kind: 'auth', isAuth: true, scope: { resourceId: 'Second-id', projectId: 'Api' } }],
+				'scoped to the collection, since the credential itself checks out',
+			);
 		});
 	});
 
