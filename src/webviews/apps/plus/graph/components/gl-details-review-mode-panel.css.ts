@@ -242,9 +242,14 @@ export const reviewModePanelStyles = css`
 		display: flex;
 		flex: none;
 		flex-direction: column;
-		gap: var(--gl-space-12);
+		gap: var(--gl-space-20);
 		min-height: 0;
 		overflow: visible;
+	}
+
+	/* The overview stands apart from the first group the way the groups stand apart from each other */
+	.scope-files__tree--flow .review-orient {
+		margin-bottom: var(--gl-space-12);
 	}
 
 	.review-orient {
