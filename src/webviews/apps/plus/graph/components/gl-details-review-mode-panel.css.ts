@@ -194,7 +194,7 @@ export const reviewModePanelStyles = css`
 	}
 
 	.review-walk--reading {
-		border-color: var(--vscode-focusBorder);
+		border-color: transparent;
 	}
 
 	.review-walk__hint {
@@ -231,19 +231,14 @@ export const reviewModePanelStyles = css`
 	}
 
 	/* The reading plan above the grouped checklist */
+	/* The plan reads as one document: a title, the overview, then each group's heading, summary and files */
 	.review-orient {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--gl-space-4) var(--gl-space-8);
-		align-items: center;
+		align-items: flex-start;
 		padding: var(--gl-space-6) var(--gl-space-10);
 		margin: var(--gl-space-6) var(--gl-space-6) 0;
-		border: var(--gl-border-width) solid var(--vscode-button-border);
-		border-radius: var(--gl-radius-sm);
-	}
-
-	.review-orient__icon {
-		font-size: var(--gl-font-lg);
 	}
 
 	.review-orient__body {
@@ -255,9 +250,16 @@ export const reviewModePanelStyles = css`
 		font-weight: 500;
 	}
 
-	.review-orient__overview {
+	.review-orient__overview,
+	.review-orient__group-summary {
+		margin: var(--gl-space-2) 0 0;
 		font-size: var(--gl-font-sm);
+		line-height: 1.4;
 		color: var(--vscode-descriptionForeground);
+	}
+
+	.review-orient__group-summary {
+		padding: 0 var(--gl-space-10) var(--gl-space-4);
 	}
 
 	.review-orient__actions {

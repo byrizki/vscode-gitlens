@@ -877,7 +877,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 	private _orientPanes?: {
 		orient: AIReviewOrientResult;
 		files: readonly ScopeFile[];
-		panes: { label: string; files: ScopeFile[] }[];
+		panes: { label: string; summary?: string; files: ScopeFile[] }[];
 	};
 
 	private getOrientPanes(orient: AIReviewOrientResult, renderFiles: readonly ScopeFile[]) {
@@ -886,7 +886,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 
 		const byPath = new Map(renderFiles.map(f => [f.path, f]));
 		const placed = new Set<string>();
-		const panes: { label: string; files: ScopeFile[] }[] = [];
+		const panes: { label: string; summary?: string; files: ScopeFile[] }[] = [];
 		for (const group of orient.groups) {
 			const files: ScopeFile[] = [];
 			for (const { path } of group.files) {
@@ -898,13 +898,8 @@ export class GlDetailsReviewModePanel extends LitElement {
 			}
 			if (files.length === 0) continue;
 
-			const kind =
-				group.kind === 'core'
-					? l10n.t('read first')
-					: group.kind === 'mechanical'
-						? l10n.t('skim')
-						: l10n.t('supporting');
-			panes.push({ label: `${getReviewFocusAreaLabel(group)} · ${kind}`, files: files });
+			// The label and summary say what the group is; its kind only ordered it
+			panes.push({ label: getReviewFocusAreaLabel(group), summary: group.summary || undefined, files: files });
 		}
 		const rest = renderFiles.filter(f => !placed.has(f.path));
 		if (rest.length > 0) {
@@ -947,7 +942,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 	/** The strip above the checklist: the file being read and its steps while a review diff is active, the
 	 *  progress otherwise, and the review's ending — with a summary to take away — once every file is viewed. */
 	private renderDoneCard() {
-		return html`${this.renderDeepReviewStrip()}${this.renderReadingOrEnding()}`;
+		return html`${this.renderDeepReviewStrip()}`;
 	}
 
 	private renderReadingOrEnding() {
@@ -1055,6 +1050,7 @@ export class GlDetailsReviewModePanel extends LitElement {
 					<code-icon icon="arrow-left"></code-icon>
 				</gl-button>
 				<gl-button
+					appearance="secondary"
 					density="compact"
 					tooltip=${this.withReadingShortcut(l10n.t('Mark Viewed & Next'), 'markViewed')}
 					@click=${() => this.handleReadingStep('markViewed', active)}
@@ -1168,64 +1164,67 @@ export class GlDetailsReviewModePanel extends LitElement {
 
 		if (this.orient != null) return this.renderOrientPlan(renderFiles, checkableStates);
 
-		return html`<div class="scope-files__tree">
-			<webview-pane-group flexible>
-				<gl-file-tree-pane
-					.files=${renderFiles}
-					?checkable=${true}
-					?multi-selectable=${true}
-					?show-file-icons=${true}
-					.collapsable=${false}
-					.revealPath=${this.reading?.active}
-					@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) => this.onTreeOrderChanged('tree', e)}
-					.filesLayout=${this.paneFilesLayout}
-					.checkableStates=${checkableStates}
-					.fileActions=${this.fileActionsForFile}
-					.fileDecorations=${this.decorationsForFile}
-					.fileContext=${this.getFileContext}
-					.contextRevision=${`${this.contextRevision}:${this._sessionRevision}`}
-					.folderContext=${(folder: { relativePath: string }) => buildFolderContext(this.repoPath, folder)}
-					selection-action="file-compare-range"
-					@file-compare-range=${(e: CustomEvent<FileChangeListItemDetail>) =>
-						this.handleOpenFile(e.detail.path)}
-					.searchContext=${this.searchContext}
-					.showSearchBox=${this.showSearchBox}
-					.searchBoxFilter=${this.searchBoxFilter}
-					check-action="viewed"
-					empty-text=${l10n.t('No files changed')}
-					@file-checked=${this.onFileChecked}
-					@gl-check-all=${this.onToggleCheckAll}
-					@review-file-exclude=${(e: CustomEvent<FileChangeListItemDetail>) =>
-						this.dispatchFileExcluded(e.detail.path, true)}
-					@review-file-include=${(e: CustomEvent<FileChangeListItemDetail>) =>
-						this.dispatchFileExcluded(e.detail.path, false)}
-					@file-open=${this.redispatch}
-					@file-stage=${this.redispatch}
-					@file-unstage=${this.redispatch}
-					@file-compare-working=${this.redispatch}
-					@file-open-on-remote=${this.redispatch}
-					@file-selection-changed=${(e: CustomEvent<{ files: readonly { path: string }[] }>) =>
-						(this._selectedFiles = e.detail?.files ?? [])}
-					@change-files-layout=${(e: CustomEvent<{ layout: ViewFilesLayout }>) => {
-						this.fileLayout = e.detail.layout;
-					}}
-				>
-					${
-						renderFiles.length > 0
-							? renderOpenChangesAction({
-									selectedCount: this._selectedFiles.length,
-									slot: 'leading-actions',
-									onOpenAll: () => this.onOpenScopeMultiDiff(renderFiles),
-									onOpenSelected: () => {
-										const selectedPaths = new Set(this._selectedFiles.map(f => f.path));
-										this.onOpenScopeMultiDiff(renderFiles.filter(f => selectedPaths.has(f.path)));
-									},
-								})
-							: nothing
-					}
-				</gl-file-tree-pane>
-			</webview-pane-group>
-		</div>`;
+		return html`${this.renderReadingOrEnding()}
+			<div class="scope-files__tree">
+				<webview-pane-group flexible>
+					<gl-file-tree-pane
+						.files=${renderFiles}
+						?checkable=${true}
+						?multi-selectable=${true}
+						?show-file-icons=${true}
+						.collapsable=${false}
+						.revealPath=${this.reading?.active}
+						@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) => this.onTreeOrderChanged('tree', e)}
+						.filesLayout=${this.paneFilesLayout}
+						.checkableStates=${checkableStates}
+						.fileActions=${this.fileActionsForFile}
+						.fileDecorations=${this.decorationsForFile}
+						.fileContext=${this.getFileContext}
+						.contextRevision=${`${this.contextRevision}:${this._sessionRevision}`}
+						.folderContext=${(folder: { relativePath: string }) => buildFolderContext(this.repoPath, folder)}
+						selection-action="file-compare-range"
+						@file-compare-range=${(e: CustomEvent<FileChangeListItemDetail>) =>
+							this.handleOpenFile(e.detail.path)}
+						.searchContext=${this.searchContext}
+						.showSearchBox=${this.showSearchBox}
+						.searchBoxFilter=${this.searchBoxFilter}
+						check-action="viewed"
+						empty-text=${l10n.t('No files changed')}
+						@file-checked=${this.onFileChecked}
+						@gl-check-all=${this.onToggleCheckAll}
+						@review-file-exclude=${(e: CustomEvent<FileChangeListItemDetail>) =>
+							this.dispatchFileExcluded(e.detail.path, true)}
+						@review-file-include=${(e: CustomEvent<FileChangeListItemDetail>) =>
+							this.dispatchFileExcluded(e.detail.path, false)}
+						@file-open=${this.redispatch}
+						@file-stage=${this.redispatch}
+						@file-unstage=${this.redispatch}
+						@file-compare-working=${this.redispatch}
+						@file-open-on-remote=${this.redispatch}
+						@file-selection-changed=${(e: CustomEvent<{ files: readonly { path: string }[] }>) =>
+							(this._selectedFiles = e.detail?.files ?? [])}
+						@change-files-layout=${(e: CustomEvent<{ layout: ViewFilesLayout }>) => {
+							this.fileLayout = e.detail.layout;
+						}}
+					>
+						${
+							renderFiles.length > 0
+								? renderOpenChangesAction({
+										selectedCount: this._selectedFiles.length,
+										slot: 'leading-actions',
+										onOpenAll: () => this.onOpenScopeMultiDiff(renderFiles),
+										onOpenSelected: () => {
+											const selectedPaths = new Set(this._selectedFiles.map(f => f.path));
+											this.onOpenScopeMultiDiff(
+												renderFiles.filter(f => selectedPaths.has(f.path)),
+											);
+										},
+									})
+								: nothing
+						}
+					</gl-file-tree-pane>
+				</webview-pane-group>
+			</div>`;
 	}
 
 	/** The checklist reshaped by the reading plan: one pane per group, in reading order, each file with
@@ -1238,61 +1237,69 @@ export class GlDetailsReviewModePanel extends LitElement {
 		const panes = this.getOrientPanes(orient, renderFiles);
 		this._orientPaneKeys = panes.map(pane => pane.label);
 
-		return html`<div class="scope-files__tree">
-			<div class="review-orient">
-				<code-icon class="review-orient__icon" icon="zap"></code-icon>
-				<div class="review-orient__body">
-					<div class="review-orient__title">${l10n.t('Reading plan')}</div>
-					<div class="review-orient__overview">${orient.overview}</div>
+		return html`${this.renderReadingOrEnding()}
+			<div class="scope-files__tree">
+				<div class="review-orient">
+					<div class="review-orient__body">
+						<div class="review-orient__title">${l10n.t('Reading plan')}</div>
+						<p class="review-orient__overview">${orient.overview}</p>
+					</div>
+					<div class="review-orient__actions">
+						<gl-button
+							appearance="secondary"
+							density="compact"
+							tooltip=${l10n.t('Drop the plan and go back to the file tree')}
+							@click=${this.handleOrientClear}
+						>
+							${l10n.t('Dismiss Plan')}
+						</gl-button>
+					</div>
 				</div>
-				<div class="review-orient__actions">
-					<gl-button
-						appearance="secondary"
-						density="compact"
-						tooltip=${l10n.t('Drop the plan and go back to the file tree')}
-						@click=${this.handleOrientClear}
-					>
-						${l10n.t('Dismiss Plan')}
-					</gl-button>
-				</div>
-			</div>
-			<webview-pane-group flexible>
-				${panes.map(
-					pane => html`<gl-file-tree-pane
-						header=${pane.label}
-						.files=${pane.files}
-						.revealPath=${this.reading?.active}
-						@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) =>
-							this.onTreeOrderChanged(pane.label, e)}
-						?checkable=${true}
-						?multi-selectable=${true}
-						?show-file-icons=${true}
-						.filesLayout=${orientPaneLayout}
-						.checkableStates=${checkableStates}
-						.fileActions=${this.fileActionsForFile}
-						.fileDecorations=${this.decorationsForFile}
-						.fileContext=${this.getFileContext}
-						.contextRevision=${`${this.contextRevision}:${this._sessionRevision}`}
-						.folderContext=${(folder: { relativePath: string }) => buildFolderContext(this.repoPath, folder)}
-						selection-action="file-compare-range"
-						@file-compare-range=${(e: CustomEvent<FileChangeListItemDetail>) =>
-							this.handleOpenFile(e.detail.path)}
-						check-action="viewed"
-						@file-checked=${this.onFileChecked}
-						@gl-check-all=${this.onToggleCheckAll}
-						@review-file-exclude=${(e: CustomEvent<FileChangeListItemDetail>) =>
-							this.dispatchFileExcluded(e.detail.path, true)}
-						@review-file-include=${(e: CustomEvent<FileChangeListItemDetail>) =>
-							this.dispatchFileExcluded(e.detail.path, false)}
-						@file-open=${this.redispatch}
-						@file-stage=${this.redispatch}
-						@file-unstage=${this.redispatch}
-						@file-compare-working=${this.redispatch}
-						@file-open-on-remote=${this.redispatch}
-					></gl-file-tree-pane>`,
-				)}
-			</webview-pane-group>
-		</div>`;
+				<webview-pane-group flexible>
+					${panes.map(
+						pane => html`<gl-file-tree-pane
+							header=${pane.label}
+							.files=${pane.files}
+							.revealPath=${this.reading?.active}
+							@tree-order-changed=${(e: CustomEvent<{ paths: string[] }>) =>
+								this.onTreeOrderChanged(pane.label, e)}
+							?checkable=${true}
+							?multi-selectable=${true}
+							?show-file-icons=${true}
+							.filesLayout=${orientPaneLayout}
+							.checkableStates=${checkableStates}
+							.fileActions=${this.fileActionsForFile}
+							.fileDecorations=${this.decorationsForFile}
+							.fileContext=${this.getFileContext}
+							.contextRevision=${`${this.contextRevision}:${this._sessionRevision}`}
+							.folderContext=${(folder: { relativePath: string }) => buildFolderContext(this.repoPath, folder)}
+							selection-action="file-compare-range"
+							@file-compare-range=${(e: CustomEvent<FileChangeListItemDetail>) =>
+								this.handleOpenFile(e.detail.path)}
+							check-action="viewed"
+							@file-checked=${this.onFileChecked}
+							@gl-check-all=${this.onToggleCheckAll}
+							@review-file-exclude=${(e: CustomEvent<FileChangeListItemDetail>) =>
+								this.dispatchFileExcluded(e.detail.path, true)}
+							@review-file-include=${(e: CustomEvent<FileChangeListItemDetail>) =>
+								this.dispatchFileExcluded(e.detail.path, false)}
+							@file-open=${this.redispatch}
+							@file-stage=${this.redispatch}
+							@file-unstage=${this.redispatch}
+							@file-compare-working=${this.redispatch}
+							@file-open-on-remote=${this.redispatch}
+						>
+							${
+								pane.summary
+									? html`<p slot="before-tree" class="review-orient__group-summary">
+											${pane.summary}
+										</p>`
+									: nothing
+							}
+						</gl-file-tree-pane>`,
+					)}
+				</webview-pane-group>
+			</div>`;
 	}
 
 	private handleOrient = (): void => {

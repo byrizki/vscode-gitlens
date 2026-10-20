@@ -705,6 +705,7 @@ suite('DetailsWorkflowController — running-operations registry', () => {
 					id: 'g1',
 					label: 'Core',
 					kind: 'core',
+					summary: 'the core',
 					files: [
 						{ path: 'src/b.ts', note: '' },
 						{ path: 'src/a.ts', note: '' },
